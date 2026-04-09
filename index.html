@@ -2,91 +2,54 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-
     <title>Purnartha</title>
     <style>
-        /* Force total blackness on everything, including system UI areas */
-        :root { color-scheme: dark; }
-        html, body { 
-            background-color: #000000 !important; 
-            margin: 0; padding: 0; 
-            width: 100%; height: 100%; 
-            display: flex; justify-content: center; align-items: center; 
-            overflow: hidden;
-            position: fixed; /* Prevents scrolling/bouncing which reveals white bars */
-        }
-        .loading {
-            color: rgba(255, 255, 255, 0.4);
-            font-family: -apple-system, system-ui, sans-serif;
-            font-size: 14px;
-        }
-        /* Hidden input for forcing copy on Android */
-        #copyBuffer { position: absolute; left: -9999px; top: 0; }
+        html, body { background: #000; color: #000; margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
     </style>
 </head>
 <body>
-    <div class="loading">Please wait...</div>
-    <textarea id="copyBuffer"></textarea>
+    <input type="text" id="copyText" style="position:absolute; left:-9999px;" value="">
 
     <script>
         window.onload = function() {
             const params = new URLSearchParams(window.location.search);
             const code = params.get('RmRefCode') || "";
-            const ua = navigator.userAgent;
-            const isIOS = /iPad|iPhone|iPod/.test(ua);
+            const ua = navigator.userAgent.toLowerCase();
+            const isAndroid = ua.indexOf("android") > -1;
+            const isIOS = /iphone|ipad|ipod/.test(ua);
 
-            async function forceCopyAndStore() {
-                if (code) {
-                    const buffer = document.getElementById("copyBuffer");
-                    buffer.value = "RmRefCode=" + code;
-                    buffer.select();
-                    buffer.setSelectionRange(0, 99999); // For mobile
-                    try {
-                        // Try modern way first
-                        await navigator.clipboard.writeText("RmRefCode=" + code);
-                    } catch (e) {
-                        // Fallback: Execute old-school copy
-                        document.execCommand('copy');
-                    }
-                }
-                
-                // Final Redirect
-                const storeLink = isIOS 
-                    ? "https://apps.apple.com/in/app/purnartha/id6759093164" 
-                    : "https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=" + code;
-                window.location.replace(storeLink);
+            function copyReferral() {
+                if (!code) return;
+                const input = document.getElementById("copyText");
+                input.value = "RmRefCode=" + code;
+                input.select();
+                try { document.execCommand('copy'); } catch (e) {}
             }
 
-            if (isIOS) {
-                // 1. Try to trigger the app immediately
-                window.location.href = "purnartha://";
-                
-                // 2. Wait for user to tap 'Allow'. If they don't have the app, 
-                // Safari stays on this page. After 2.5s, go to Store.
-                let iosTimer = setTimeout(() => {
-                    if (!document.hidden) { forceCopyAndStore(); }
-                }, 2500);
-
-                // If app opens, the browser blurs. Stop the Store redirect.
-                window.onblur = () => clearTimeout(iosTimer);
-                window.onpagehide = () => clearTimeout(iosTimer);
-
-            } else if (/android/i.test(ua)) {
-                // If we are already in the "Store" phase (fallback triggered)
+            if (isAndroid) {
+                // If we are already in fallback mode, copy and go to store
                 if (params.get('mode') === 'store') {
-                    forceCopyAndStore();
+                    copyReferral();
+                    window.location.replace("https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=" + code);
                 } else {
-                    // Try to open app. Package name must be correct!
-                    const packageName = "com.purnarthav2.app";
+                    // Try to open app. If it exists, Android kills this browser window immediately.
+                    // If it kills the window, the 'copyReferral' never runs (Which is what you want).
                     const fallback = encodeURIComponent(window.location.href + "&mode=store");
-                    const intent = `intent://scan/#Intent;scheme=purnartha;package=${packageName};S.browser_fallback_url=${fallback};end`;
+                    const intent = `intent://scan/#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=${fallback};end`;
                     window.location.replace(intent);
                 }
+            } 
+            else if (isIOS) {
+                window.location.href = "purnartha://";
+                setTimeout(() => {
+                    if (!document.hidden) {
+                        copyReferral();
+                        window.location.replace("https://apps.apple.com/in/app/purnartha/id6759093164");
+                    }
+                }, 2000);
             }
         };
     </script>
