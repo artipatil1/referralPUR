@@ -3,26 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Purnartha</title>
+    <title>Connecting to Purnartha</title>
     <style>
-        /* Black background matches the system transition for a seamless feel */
-        body {
-            background-color: #000000;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
+        body { background-color: #000; color: #fff; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
+        .loader { opacity: 0.6; font-size: 14px; }
     </style>
 </head>
 <body>
-
-    <div style="text-align: center;">
-        <p style="font-size: 14px; opacity: 0.5;">Connecting...</p>
-    </div>
+    <div class="loader">Connecting...</div>
 
     <script>
         async function startGhostRedirect() {
@@ -30,28 +18,27 @@
             const dynamicCode = urlParams.get('RmRefCode') || "";
             const userAgent = navigator.userAgent || navigator.vendor || window.opera;
 
-            // 1. STEP: COPY CODE (Takes 0.1s)
+            // --- UNIFIED STEP: COPY TO CLIPBOARD ---
             if (dynamicCode) {
                 try {
-                    // Flutter looks for "RmRefCode=" prefix
+                    // We save it with a prefix so the App knows it's OUR code
                     await navigator.clipboard.writeText("RmRefCode=" + dynamicCode);
                 } catch (e) {
-                    console.log("Clipboard skip");
+                    console.log("Clipboard blocked or not supported");
                 }
             }
 
-            // 2. STEP: REDIRECT & CLOSE BROWSER
+            // --- UNIFIED STEP: REDIRECT ---
             if (/android/i.test(userAgent)) {
-                // For Android: Redirects to Play Store App + Shows Install Overlay
-                // Using .replace() ensures the browser "disappears" from history
-                window.location.replace("https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=" + dynamicCode);
+                // Android Store
+                window.location.replace("https://play.google.com/store/apps/details?id=com.purnarthav2.app");
             } 
-            else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-                // For iOS: Redirects to Apple App Store App
+            else if (/iPad|iPhone|iPod/.test(userAgent)) {
+                // Apple Store
                 window.location.replace("https://apps.apple.com/in/app/purnartha/id6759093164");
             } 
             else {
-                // Desktop Fallback
+                // Desktop
                 window.location.replace("https://www.purnartha.com");
             }
         }
