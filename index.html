@@ -2,11 +2,12 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Purnartha</title>
     <style>body { background-color: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }</style>
 </head>
 <body>
-    <div id="status" style="text-align: center;"><p style="opacity: 0.5;">Connecting...</p></div>
+    <div style="text-align: center;"><p style="opacity: 0.5;">Opening App Store...</p></div>
 
     <script>
         window.onload = function() {
@@ -15,46 +16,34 @@
             const ua = navigator.userAgent;
             const isIOS = /iPad|iPhone|iPod/.test(ua);
 
-            // This only runs if the app is NOT installed
-            async function triggerNewUserFlow() {
-                if (code) {
-                    try {
-                        // Copy happens ONLY for people going to the store
-                        await navigator.clipboard.writeText("RmRefCode=" + code);
-                    } catch (e) {}
-                }
-                if (isIOS) {
-                    window.location.replace("https://apps.apple.com/in/app/purnartha/id6759093164");
-                } else {
-                    window.location.replace("https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=" + code);
-                }
-            }
-
             if (isIOS) {
-                // iOS logic: Safari needs a gentle push
+                // 1. Try to open the app
                 window.location.href = "purnartha://";
                 
-                // If the app is installed, Safari will show a popup.
-                // If the user hasn't left the page in 2 seconds, assume app is missing.
-                let checkInstall = setTimeout(() => {
+                // 2. Force App Store redirect regardless after a short delay
+                // This ensures the user doesn't stay stuck on the black HTML page
+                setTimeout(async () => {
+                    // Check if the user is still on this browser tab
                     if (!document.hidden) {
-                        triggerNewUserFlow();
+                        if (code) {
+                            try {
+                                // Copy the code for the new user
+                                await navigator.clipboard.writeText("RmRefCode=" + code);
+                            } catch (e) {}
+                        }
+                        // Redirect to App Store
+                        window.location.replace("https://apps.apple.com/in/app/purnartha/id6759093164");
                     }
-                }, 2000);
-
-                // If user opens app, clear the timer so we don't copy the code
-                window.onblur = () => clearTimeout(checkInstall);
+                }, 1000);
 
             } else if (/android/i.test(ua)) {
-                // Android logic: Intent handles the "Existing User" check perfectly
-                const storeUrl = `https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=${code}`;
-                const intent = `intent://scan/#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=${encodeURIComponent(window.location.href + '&mode=store')};end`;
-                
-                if (params.get('mode') === 'store') {
-                    triggerNewUserFlow();
-                } else {
-                    window.location.replace(intent);
-                }
+                // Android logic (remains the same as it is working well)
+                const packageName = "com.purnarthav2.app";
+                const playStoreUrl = `https://play.google.com/store/apps/details?id=${packageName}&referrer=${code}`;
+                const intent = `intent://scan/#Intent;scheme=purnartha;package=${packageName};S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end`;
+                window.location.replace(intent);
+            } else {
+                window.location.replace("https://www.purnartha.com");
             }
         };
     </script>
