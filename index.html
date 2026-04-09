@@ -2,30 +2,32 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
     <title>Purnartha</title>
     <style>
-        /* Force total blackness on the whole screen and browser UI */
+        /* Force total blackness on the entire viewport */
+        :root { color-scheme: dark; }
         html, body { 
             background-color: #000000 !important; 
-            color: #ffffff; 
-            margin: 0; 
-            padding: 0; 
-            width: 100%; 
-            height: 100%; 
+            margin: 0; padding: 0; 
+            width: 100vw; height: 100vh; 
+            display: flex; justify-content: center; align-items: center; 
             overflow: hidden;
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
-        .loader { opacity: 0.6; font-size: 14px; letter-spacing: 1px; }
+        .loading {
+            color: rgba(255, 255, 255, 0.3);
+            font-family: -apple-system, sans-serif;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-    <div class="loader">Connecting...</div>
+    <div class="loading">Connecting...</div>
 
     <script>
         window.onload = function() {
@@ -34,15 +36,13 @@
             const ua = navigator.userAgent;
             const isIOS = /iPad|iPhone|iPod/.test(ua);
 
-            async function copyAndRedirect(storeUrl) {
-                // Only copy if a code exists
+            async function copyAndGoToStore() {
                 if (code) {
                     try {
-                        // Attempt to copy to clipboard
-                        const textToCopy = "RmRefCode=" + code;
-                        await navigator.clipboard.writeText(textToCopy);
-                    } catch (err) {
-                        // Fallback for older browsers
+                        // Attempt modern copy
+                        await navigator.clipboard.writeText("RmRefCode=" + code);
+                    } catch (e) {
+                        // Fallback copy for older Android browsers
                         const textArea = document.createElement("textarea");
                         textArea.value = "RmRefCode=" + code;
                         document.body.appendChild(textArea);
@@ -51,34 +51,31 @@
                         document.body.removeChild(textArea);
                     }
                 }
-                window.location.replace(storeUrl);
+                // Redirect to respective stores
+                window.location.replace(isIOS 
+                    ? "https://apps.apple.com/in/app/purnartha/id6759093164" 
+                    : "https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=" + code
+                );
             }
 
             if (isIOS) {
-                // 1. Try to open the app directly
+                // 1. Try to jump to App
                 window.location.href = "purnartha://";
                 
-                // 2. Fallback logic if app is missing
-                let checkTimer = setTimeout(() => {
-                    if (!document.hidden) {
-                        copyAndRedirect("https://apps.apple.com/in/app/purnartha/id6759093164");
-                    }
-                }, 2000);
+                // 2. iOS "Stuck" protection
+                let iosCheck = setTimeout(() => {
+                    if (!document.hidden) { copyAndGoToStore(); }
+                }, 2500);
 
-                // If user leaves the browser (app opens), stop the redirect
-                window.onpagehide = () => clearTimeout(checkTimer);
-                window.onblur = () => clearTimeout(checkTimer);
-
-            } else if (/android/i.test(ua)) {
-                // If it's a "Store" fallback (triggered by intent failure)
+                // Stop the timer if the app opens
+                window.onpagehide = () => clearTimeout(iosCheck);
+            } 
+            else if (/android/i.test(ua)) {
                 if (params.get('mode') === 'store') {
-                    copyAndRedirect("https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=" + code);
+                    copyAndGoToStore();
                 } else {
-                    // Try to open app using Intent
-                    const packageName = "com.purnarthav2.app";
-                    // If this fails, it reloads the same page with mode=store
                     const fallback = encodeURIComponent(window.location.href + "&mode=store");
-                    const intent = `intent://scan/#Intent;scheme=purnartha;package=${packageName};S.browser_fallback_url=${fallback};end`;
+                    const intent = `intent://scan/#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=${fallback};end`;
                     window.location.replace(intent);
                 }
             }
