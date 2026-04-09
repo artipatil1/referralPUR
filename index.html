@@ -1,49 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connecting to Purnartha</title>
-    <style>
-        body { background-color: #000; color: #fff; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
-        .loader { opacity: 0.6; font-size: 14px; }
-    </style>
+    <title>Redirecting</title>
 </head>
-<body>
-    <div class="loader">Connecting...</div>
-
+<body style="background-color: #000;">
     <script>
-        async function startGhostRedirect() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const dynamicCode = urlParams.get('RmRefCode') || "";
-            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        (async function() {
+            const code = new URLSearchParams(window.location.search).get('RmRefCode') || "";
+            const ua = navigator.userAgent;
 
-            // --- UNIFIED STEP: COPY TO CLIPBOARD ---
-            if (dynamicCode) {
+            // 1. Copy instantly
+            if (code) {
                 try {
-                    // We save it with a prefix so the App knows it's OUR code
-                    await navigator.clipboard.writeText("RmRefCode=" + dynamicCode);
-                } catch (e) {
-                    console.log("Clipboard blocked or not supported");
-                }
+                    // This happens in the background
+                    await navigator.clipboard.writeText("RmRefCode=" + code);
+                } catch (e) {}
             }
 
-            // --- UNIFIED STEP: REDIRECT ---
-            if (/android/i.test(userAgent)) {
-                // Android Store
-                window.location.replace("https://play.google.com/store/apps/details?id=com.purnarthav2.app");
+            // 2. Immediate Redirect
+            if (/android/i.test(ua)) {
+                // If app is installed, this opens the app INSTANTLY.
+                // If not, it jumps to Play Store immediately.
+                window.location.replace(`intent://scan/#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=${code};end`);
             } 
-            else if (/iPad|iPhone|iPod/.test(userAgent)) {
-                // Apple Store
-                window.location.replace("https://apps.apple.com/in/app/purnartha/id6759093164");
+            else if (/iPad|iPhone|iPod/.test(ua)) {
+                // iOS: Try app, then store
+                window.location.href = "purnartha://";
+                setTimeout(() => {
+                    window.location.replace("https://apps.apple.com/in/app/purnartha/id6759093164");
+                }, 800);
             } 
             else {
-                // Desktop
                 window.location.replace("https://www.purnartha.com");
             }
-        }
-
-        window.onload = startGhostRedirect;
+        })();
     </script>
 </body>
 </html>
