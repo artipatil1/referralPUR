@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purnartha | Redirecting...</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #ffffff;
+            color: #333;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0056b3;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .text {
+            margin-top: 20px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="loader"></div>
+    <div class="text">Opening the App Store...</div>
+
+    <script>
+        async function handleRedirect() {
+            // 1. Get the dynamic code from the URL (e.g., UAWBYLJ)
+            const urlParams = new URLSearchParams(window.location.search);
+            const dynamicCode = urlParams.get('RmRefCode'); 
+
+            if (dynamicCode) {
+                try {
+                    // 2. CRITICAL: Add "RmRefCode=" prefix so Flutter detects it.
+                    // This matches your Flutter logic: clipboardText.contains('RmRefCode=')
+                    const textToSave = "RmRefCode=" + dynamicCode;
+                    
+                    await navigator.clipboard.writeText(textToSave);
+                    console.log("Success: " + textToSave);
+                } catch (err) {
+                    console.warn("Clipboard access denied or failed.");
+                }
+            }
+
+            // 3. 0.5s Delay to ensure clipboard operation finishes
+            setTimeout(() => {
+                // Your iOS App Store Link
+                window.location.href = "https://apps.apple.com/in/app/purnartha/id6759093164";
+            }, 500);
+        }
+
+        // Execute when page is ready
+        window.onload = handleRedirect;
+    </script>
+</body>
+</html>
