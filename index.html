@@ -1,13 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Purnartha</title>
-    <style>body { background-color: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }</style>
+    <style>
+        /* Force total blackness on the whole screen and browser UI */
+        html, body { 
+            background-color: #000000 !important; 
+            color: #ffffff; 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .loader { opacity: 0.6; font-size: 14px; letter-spacing: 1px; }
+    </style>
 </head>
 <body>
-    <div style="text-align: center;"><p style="opacity: 0.5;">Opening App Store...</p></div>
+    <div class="loader">Connecting...</div>
 
     <script>
         window.onload = function() {
@@ -16,34 +34,53 @@
             const ua = navigator.userAgent;
             const isIOS = /iPad|iPhone|iPod/.test(ua);
 
+            async function copyAndRedirect(storeUrl) {
+                // Only copy if a code exists
+                if (code) {
+                    try {
+                        // Attempt to copy to clipboard
+                        const textToCopy = "RmRefCode=" + code;
+                        await navigator.clipboard.writeText(textToCopy);
+                    } catch (err) {
+                        // Fallback for older browsers
+                        const textArea = document.createElement("textarea");
+                        textArea.value = "RmRefCode=" + code;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                    }
+                }
+                window.location.replace(storeUrl);
+            }
+
             if (isIOS) {
-                // 1. Try to open the app
+                // 1. Try to open the app directly
                 window.location.href = "purnartha://";
                 
-                // 2. Force App Store redirect regardless after a short delay
-                // This ensures the user doesn't stay stuck on the black HTML page
-                setTimeout(async () => {
-                    // Check if the user is still on this browser tab
+                // 2. Fallback logic if app is missing
+                let checkTimer = setTimeout(() => {
                     if (!document.hidden) {
-                        if (code) {
-                            try {
-                                // Copy the code for the new user
-                                await navigator.clipboard.writeText("RmRefCode=" + code);
-                            } catch (e) {}
-                        }
-                        // Redirect to App Store
-                        window.location.replace("https://apps.apple.com/in/app/purnartha/id6759093164");
+                        copyAndRedirect("https://apps.apple.com/in/app/purnartha/id6759093164");
                     }
-                }, 1000);
+                }, 2000);
+
+                // If user leaves the browser (app opens), stop the redirect
+                window.onpagehide = () => clearTimeout(checkTimer);
+                window.onblur = () => clearTimeout(checkTimer);
 
             } else if (/android/i.test(ua)) {
-                // Android logic (remains the same as it is working well)
-                const packageName = "com.purnarthav2.app";
-                const playStoreUrl = `https://play.google.com/store/apps/details?id=${packageName}&referrer=${code}`;
-                const intent = `intent://scan/#Intent;scheme=purnartha;package=${packageName};S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end`;
-                window.location.replace(intent);
-            } else {
-                window.location.replace("https://www.purnartha.com");
+                // If it's a "Store" fallback (triggered by intent failure)
+                if (params.get('mode') === 'store') {
+                    copyAndRedirect("https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=" + code);
+                } else {
+                    // Try to open app using Intent
+                    const packageName = "com.purnarthav2.app";
+                    // If this fails, it reloads the same page with mode=store
+                    const fallback = encodeURIComponent(window.location.href + "&mode=store");
+                    const intent = `intent://scan/#Intent;scheme=purnartha;package=${packageName};S.browser_fallback_url=${fallback};end`;
+                    window.location.replace(intent);
+                }
             }
         };
     </script>
