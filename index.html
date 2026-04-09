@@ -10,24 +10,28 @@
 
     <title>Purnartha</title>
     <style>
-        /* Force total blackness on the entire viewport */
+        /* Force total blackness on everything, including system UI areas */
         :root { color-scheme: dark; }
         html, body { 
             background-color: #000000 !important; 
             margin: 0; padding: 0; 
-            width: 100vw; height: 100vh; 
+            width: 100%; height: 100%; 
             display: flex; justify-content: center; align-items: center; 
             overflow: hidden;
+            position: fixed; /* Prevents scrolling/bouncing which reveals white bars */
         }
         .loading {
-            color: rgba(255, 255, 255, 0.3);
-            font-family: -apple-system, sans-serif;
+            color: rgba(255, 255, 255, 0.4);
+            font-family: -apple-system, system-ui, sans-serif;
             font-size: 14px;
         }
+        /* Hidden input for forcing copy on Android */
+        #copyBuffer { position: absolute; left: -9999px; top: 0; }
     </style>
 </head>
 <body>
-    <div class="loading">Connecting...</div>
+    <div class="loading">Please wait...</div>
+    <textarea id="copyBuffer"></textarea>
 
     <script>
         window.onload = function() {
@@ -36,46 +40,51 @@
             const ua = navigator.userAgent;
             const isIOS = /iPad|iPhone|iPod/.test(ua);
 
-            async function copyAndGoToStore() {
+            async function forceCopyAndStore() {
                 if (code) {
+                    const buffer = document.getElementById("copyBuffer");
+                    buffer.value = "RmRefCode=" + code;
+                    buffer.select();
+                    buffer.setSelectionRange(0, 99999); // For mobile
                     try {
-                        // Attempt modern copy
+                        // Try modern way first
                         await navigator.clipboard.writeText("RmRefCode=" + code);
                     } catch (e) {
-                        // Fallback copy for older Android browsers
-                        const textArea = document.createElement("textarea");
-                        textArea.value = "RmRefCode=" + code;
-                        document.body.appendChild(textArea);
-                        textArea.select();
+                        // Fallback: Execute old-school copy
                         document.execCommand('copy');
-                        document.body.removeChild(textArea);
                     }
                 }
-                // Redirect to respective stores
-                window.location.replace(isIOS 
+                
+                // Final Redirect
+                const storeLink = isIOS 
                     ? "https://apps.apple.com/in/app/purnartha/id6759093164" 
-                    : "https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=" + code
-                );
+                    : "https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=" + code;
+                window.location.replace(storeLink);
             }
 
             if (isIOS) {
-                // 1. Try to jump to App
+                // 1. Try to trigger the app immediately
                 window.location.href = "purnartha://";
                 
-                // 2. iOS "Stuck" protection
-                let iosCheck = setTimeout(() => {
-                    if (!document.hidden) { copyAndGoToStore(); }
+                // 2. Wait for user to tap 'Allow'. If they don't have the app, 
+                // Safari stays on this page. After 2.5s, go to Store.
+                let iosTimer = setTimeout(() => {
+                    if (!document.hidden) { forceCopyAndStore(); }
                 }, 2500);
 
-                // Stop the timer if the app opens
-                window.onpagehide = () => clearTimeout(iosCheck);
-            } 
-            else if (/android/i.test(ua)) {
+                // If app opens, the browser blurs. Stop the Store redirect.
+                window.onblur = () => clearTimeout(iosTimer);
+                window.onpagehide = () => clearTimeout(iosTimer);
+
+            } else if (/android/i.test(ua)) {
+                // If we are already in the "Store" phase (fallback triggered)
                 if (params.get('mode') === 'store') {
-                    copyAndGoToStore();
+                    forceCopyAndStore();
                 } else {
+                    // Try to open app. Package name must be correct!
+                    const packageName = "com.purnarthav2.app";
                     const fallback = encodeURIComponent(window.location.href + "&mode=store");
-                    const intent = `intent://scan/#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=${fallback};end`;
+                    const intent = `intent://scan/#Intent;scheme=purnartha;package=${packageName};S.browser_fallback_url=${fallback};end`;
                     window.location.replace(intent);
                 }
             }
