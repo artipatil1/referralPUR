@@ -3,71 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Purnartha | Redirecting...</title>
+    <title>Purnartha</title>
     <style>
+        /* Black background matches the system transition for a seamless feel */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #000000;
+            margin: 0;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
-            background-color: #ffffff;
-            color: #333;
-        }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #0056b3;
-            border-radius: 50%;
-            width: 35px;
-            height: 35px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .text {
-            margin-top: 20px;
-            font-size: 16px;
-            font-weight: 500;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
     </style>
 </head>
 <body>
 
-    <div class="loader"></div>
-    <div class="text">Opening the App Store...</div>
+    <div style="text-align: center;">
+        <p style="font-size: 14px; opacity: 0.5;">Connecting...</p>
+    </div>
 
     <script>
-        async function handleRedirect() {
-            // 1. Get the dynamic code from the URL (e.g., UAWBYLJ)
+        async function startGhostRedirect() {
             const urlParams = new URLSearchParams(window.location.search);
-            const dynamicCode = urlParams.get('RmRefCode'); 
+            const dynamicCode = urlParams.get('RmRefCode') || "";
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
 
+            // 1. STEP: COPY CODE (Takes 0.1s)
             if (dynamicCode) {
                 try {
-                    // 2. CRITICAL: Add "RmRefCode=" prefix so Flutter detects it.
-                    // This matches your Flutter logic: clipboardText.contains('RmRefCode=')
-                    const textToSave = "RmRefCode=" + dynamicCode;
-                    
-                    await navigator.clipboard.writeText(textToSave);
-                    console.log("Success: " + textToSave);
-                } catch (err) {
-                    console.warn("Clipboard access denied or failed.");
+                    // Flutter looks for "RmRefCode=" prefix
+                    await navigator.clipboard.writeText("RmRefCode=" + dynamicCode);
+                } catch (e) {
+                    console.log("Clipboard skip");
                 }
             }
 
-            // 3. 0.5s Delay to ensure clipboard operation finishes
-            setTimeout(() => {
-                // Your iOS App Store Link
-                window.location.href = "https://apps.apple.com/in/app/purnartha/id6759093164";
-            }, 500);
+            // 2. STEP: REDIRECT & CLOSE BROWSER
+            if (/android/i.test(userAgent)) {
+                // For Android: Redirects to Play Store App + Shows Install Overlay
+                // Using .replace() ensures the browser "disappears" from history
+                window.location.replace("https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=" + dynamicCode);
+            } 
+            else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                // For iOS: Redirects to Apple App Store App
+                window.location.replace("https://apps.apple.com/in/app/purnartha/id6759093164");
+            } 
+            else {
+                // Desktop Fallback
+                window.location.replace("https://www.purnartha.com");
+            }
         }
 
-        // Execute when page is ready
-        window.onload = handleRedirect;
+        window.onload = startGhostRedirect;
     </script>
 </body>
 </html>
