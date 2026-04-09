@@ -2,39 +2,52 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Redirecting</title>
+    <title>Purnartha</title>
+    <style>body { background-color: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }</style>
 </head>
-<body style="background-color: #000;">
+<body>
+    <div style="text-align: center;"><p style="opacity: 0.5; font-family: sans-serif;">Connecting...</p></div>
+
     <script>
-        (async function() {
-            const code = new URLSearchParams(window.location.search).get('RmRefCode') || "";
+        window.onload = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('RmRefCode') || "";
             const ua = navigator.userAgent;
+            const isIOS = /iPad|iPhone|iPod/.test(ua);
+            const isAndroid = /android/i.test(ua);
 
-            // 1. Copy instantly
-            if (code) {
-                try {
-                    // This happens in the background
-                    await navigator.clipboard.writeText("RmRefCode=" + code);
-                } catch (e) {}
-            }
-
-            // 2. Immediate Redirect
-            if (/android/i.test(ua)) {
-                // If app is installed, this opens the app INSTANTLY.
-                // If not, it jumps to Play Store immediately.
-                window.location.replace(`intent://scan/#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=${code};end`);
-            } 
-            else if (/iPad|iPhone|iPod/.test(ua)) {
-                // iOS: Try app, then store
-                window.location.href = "purnartha://";
-                setTimeout(() => {
+            // FUNCTION: The "New User" Flow (Copy + Store)
+            const goToStore = async () => {
+                if (code) {
+                    try { await navigator.clipboard.writeText("RmRefCode=" + code); } catch (e) {}
+                }
+                if (isIOS) {
                     window.location.replace("https://apps.apple.com/in/app/purnartha/id6759093164");
-                }, 800);
-            } 
-            else {
-                window.location.replace("https://www.purnartha.com");
+                } else if (isAndroid) {
+                    window.location.replace("https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=" + code);
+                }
+            };
+
+            // MAIN LOGIC
+            if (isIOS) {
+                // Try to open app. If user has it, they leave the browser.
+                window.location.href = "purnartha://";
+                
+                // If they are still here after 1.5 seconds, they don't have the app.
+                setTimeout(() => {
+                    if (!document.hidden) { goToStore(); }
+                }, 1500);
+
+            } else if (isAndroid) {
+                // Use Intent. If app exists, it opens (No Copy). 
+                // If app MISSING, it triggers browser_fallback_url (Which calls goToStore logic).
+                const storeUrl = `https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=${code}`;
+                const intent = `intent://scan/#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=${encodeURIComponent(storeUrl)};end`;
+                
+                // We add a tiny delay to ensure the clipboard isn't touched unless fallback happens
+                window.location.replace(intent);
             }
-        })();
+        };
     </script>
 </body>
 </html>
