@@ -2,89 +2,53 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Purnartha | Redirecting...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
     <style>
-        :root { color-scheme: light; }
-        html, body {
-            background-color: #ffffff !important;
-            margin: 0; padding: 0;
-            width: 100vw; height: 100vh;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #0056b3;
-            border-radius: 50%;
-            width: 35px; height: 35px;
-            animation: spin 1s linear infinite;
-        }
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .text { margin-top: 20px; font-size: 16px; font-weight: 500; color: #333; }
-        #copyBuffer { position: absolute; left: -9999px; }
     </style>
 </head>
 <body>
-
     <div class="loader"></div>
-    <div class="text">Opening Purnartha...</div>
-    <textarea id="copyBuffer"></textarea>
+    <textarea id="copyBuffer" style="position: absolute; left: -9999px;"></textarea>
 
     <script>
-        window.onload = function() {
+        window.onload = async function() {
             const params = new URLSearchParams(window.location.search);
-            const code = params.get('RmRefCode') || "";
-            const ua = navigator.userAgent.toLowerCase();
-            const isIOS = /iphone|ipad|ipod/.test(ua);
-            const isAndroid = ua.indexOf("android") > -1;
+            const code = params.get('RmRefCode');
+            const fullText = "RmRefCode=" + code;
 
-            // 1. Function to copy code to clipboard
-            async function copyToClipboard(refCode) {
-                if (!refCode) return;
-                const textToCopy = "RmRefCode=" + refCode;
+            // 1. Copy to Clipboard (The Bridge)
+            if (code) {
                 try {
-                    await navigator.clipboard.writeText(textToCopy);
-                } catch (e) {
-                    const buffer = document.getElementById("copyBuffer");
-                    buffer.value = textToCopy;
-                    buffer.select();
+                    await navigator.clipboard.writeText(fullText);
+                } catch (err) {
+                    const cb = document.getElementById("copyBuffer");
+                    cb.value = fullText;
+                    cb.select();
                     document.execCommand('copy');
                 }
-                console.log("Code copied to clipboard");
             }
 
-            // 2. Immediate Action: Try to open the app and copy code
-            copyToClipboard(code);
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const isAndroid = /Android/i.test(navigator.userAgent);
 
-            if (isIOS) {
-                // Try to open App via Custom Scheme
+            if (isAndroid) {
+                // Android Intent: Tries to open app, fallbacks to Play Store if not found
+                const storeUrl = "https://play.google.com/store/apps/details?id=com.purnarthav2.app";
+                const intent = `intent://open#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=${encodeURIComponent(storeUrl)};end`;
+                window.location.replace(intent);
+            } else if (isIOS) {
+                // iOS: Try custom scheme
                 window.location.href = "purnartha://";
-                
-                // If the app isn't open within 500ms, redirect to App Store
+                // Fallback to App Store if app doesn't open in 1.5 seconds
                 setTimeout(() => {
                     if (!document.hidden) {
                         window.location.replace("https://apps.apple.com/in/app/purnartha/id6759093164");
                     }
-                }, 500);
-
-            } else if (isAndroid) {
-                // Using Intent for Android: This handles "Open App if exists, else Store" natively
-                // S.browser_fallback_url triggers if the app is NOT installed
-                const storeUrl = "https://play.google.com/store/apps/details?id=com.purnarthav2.app&referrer=" + encodeURIComponent(code);
-                const intent = `intent://scan/#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=${encodeURIComponent(storeUrl)};end`;
-                
-                // Try to launch intent
-                window.location.replace(intent);
-
-                // Fallback for older browsers or specific shell apps
-                setTimeout(() => {
-                    if (!document.hidden) {
-                        window.location.replace(storeUrl);
-                    }
-                }, 800);
+                }, 1500);
             }
         };
     </script>
