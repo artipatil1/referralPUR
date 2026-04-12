@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redirecting...</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; }
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #fff; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #0056b3; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -20,7 +20,7 @@
             const code = params.get('RmRefCode');
             const fullText = "RmRefCode=" + code;
 
-            // 1. Copy to Clipboard (The Bridge)
+            // 1. Copy to Clipboard
             if (code) {
                 try {
                     await navigator.clipboard.writeText(fullText);
@@ -36,19 +36,27 @@
             const isAndroid = /Android/i.test(navigator.userAgent);
 
             if (isAndroid) {
-                // Android Intent: Tries to open app, fallbacks to Play Store if not found
                 const storeUrl = "https://play.google.com/store/apps/details?id=com.purnarthav2.app";
                 const intent = `intent://open#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=${encodeURIComponent(storeUrl)};end`;
                 window.location.replace(intent);
-            } else if (isIOS) {
-                // iOS: Try custom scheme
+            } 
+            else if (isIOS) {
+                const appStoreUrl = "https://apps.apple.com/in/app/purnartha/id6759093164";
+                
+                // Attempt to open the app immediately
                 window.location.href = "purnartha://";
-                // Fallback to App Store if app doesn't open in 1.5 seconds
+
+                // Fallback mechanism
+                // We use a shorter timeout for a snappier feel
                 setTimeout(() => {
-                    if (!document.hidden) {
-                        window.location.replace("https://apps.apple.com/in/app/purnartha/id6759093164");
+                    // Check if the user is still on the page. 
+                    // document.hidden becomes true if the system popup "Open in Purnartha?" appears 
+                    // OR if the app successfully opened.
+                    if (!document.hidden && !document.webkitHidden) {
+                        // User is still here, app likely not installed
+                        window.location.replace(appStoreUrl);
                     }
-                }, 1500);
+                }, 1000); 
             }
         };
     </script>
