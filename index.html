@@ -5,56 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redirecting...</title>
     <style>
-        body { background: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #0056b3; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #fff; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #0056b3; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div class="loader"></div>
+    <textarea id="copyBuffer" style="position: absolute; left: -9999px;"></textarea>
+
     <script>
-        window.onload = function() {
+        window.onload = async function() {
             const params = new URLSearchParams(window.location.search);
             const code = params.get('RmRefCode');
-            const appStoreUrl = "https://apps.apple.com/in/app/purnartha/id6759093164";
-            const playStoreUrl = "https://play.google.com/store/apps/details?id=com.purnarthav2.app";
+            const fullText = "RmRefCode=" + code;
 
             // 1. Copy to Clipboard
             if (code) {
-                const el = document.createElement('textarea');
-                el.value = "RmRefCode=" + code;
-                document.body.appendChild(el);
-                el.select();
-                document.execCommand('copy');
-                document.body.removeChild(el);
+                try {
+                    await navigator.clipboard.writeText(fullText);
+                } catch (err) {
+                    const cb = document.getElementById("copyBuffer");
+                    cb.value = fullText;
+                    cb.select();
+                    document.execCommand('copy');
+                }
             }
 
-            const isAndroid = /Android/i.test(navigator.userAgent);
             const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const isAndroid = /Android/i.test(navigator.userAgent);
 
             if (isAndroid) {
-                // Android Intent closes the browser interaction properly
-                const intent = `intent://open#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end`;
+                const storeUrl = "https://play.google.com/store/apps/details?id=com.purnarthav2.app";
+                const intent = `intent://open#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=${encodeURIComponent(storeUrl)};end`;
                 window.location.replace(intent);
             } 
             else if (isIOS) {
-                // THE iOS FIX:
-                // We attempt to open the app.
+                const appStoreUrl = "https://apps.apple.com/in/app/purnartha/id6759093164";
+                
+                // Attempt to open the app immediately
                 window.location.href = "purnartha://";
 
-                // We immediately start a timer. 
-                // If the app is NOT installed, Safari shows a popup.
-                // We use .replace so that the browser window ITSELF becomes the App Store.
+                // Fallback mechanism
+                // We use a shorter timeout for a snappier feel
                 setTimeout(() => {
+                    // Check if the user is still on the page. 
+                    // document.hidden becomes true if the system popup "Open in Purnartha?" appears 
+                    // OR if the app successfully opened.
                     if (!document.hidden && !document.webkitHidden) {
-                        // This replaces the loader page with the App Store immediately.
-                        // When the user closes the "Invalid Address" popup, 
-                        // they are ALREADY inside the App Store.
+                        // User is still here, app likely not installed
                         window.location.replace(appStoreUrl);
                     }
-                }, 800); 
+                }, 1000); 
             }
         };
     </script>
 </body>
 </html>
+
