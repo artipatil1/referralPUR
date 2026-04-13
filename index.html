@@ -18,9 +18,9 @@
         window.onload = async function() {
             const params = new URLSearchParams(window.location.search);
             const code = params.get('RmRefCode');
-            const fullText = "RmRefCode=" + code;
+            const fullText = "RmRefCode=" + (code || "");
 
-            // 1. Copy to Clipboard
+            // 1. Copy to Clipboard logic
             if (code) {
                 try {
                     await navigator.clipboard.writeText(fullText);
@@ -36,30 +36,41 @@
             const isAndroid = /Android/i.test(navigator.userAgent);
 
             if (isAndroid) {
+                // Android handles the fallback automatically via the Intent scheme
                 const storeUrl = "https://play.google.com/store/apps/details?id=com.purnarthav2.app";
                 const intent = `intent://open#Intent;scheme=purnartha;package=com.purnarthav2.app;S.browser_fallback_url=${encodeURIComponent(storeUrl)};end`;
                 window.location.replace(intent);
             } 
             else if (isIOS) {
                 const appStoreUrl = "https://apps.apple.com/in/app/purnartha/id6759093164";
+                const appScheme = "purnartha://";
                 
-                // Attempt to open the app immediately
-                window.location.href = "purnartha://";
+                let appOpened = false;
 
-                // Fallback mechanism
-                // We use a shorter timeout for a snappier feel
+                // If the user switches away from the browser (to the app or system popup), 
+                // we set appOpened to true to prevent the App Store redirect.
+                const handleVisibilityChange = () => {
+                    if (document.hidden || document.webkitHidden) {
+                        appOpened = true;
+                    }
+                };
+
+                window.addEventListener("visibilitychange", handleVisibilityChange);
+                window.addEventListener("pagehide", handleVisibilityChange);
+                window.onblur = () => { appOpened = true; };
+
+                // Attempt to open the app
+                window.location.href = appScheme;
+
+                // Fallback mechanism: Wait 2.5 seconds.
+                // If the app isn't installed, the visibility won't change, and we redirect.
                 setTimeout(() => {
-                    // Check if the user is still on the page. 
-                    // document.hidden becomes true if the system popup "Open in Purnartha?" appears 
-                    // OR if the app successfully opened.
-                    if (!document.hidden && !document.webkitHidden) {
-                        // User is still here, app likely not installed
+                    if (!appOpened) {
                         window.location.replace(appStoreUrl);
                     }
-                }, 1000); 
+                }, 2500); 
             }
         };
     </script>
 </body>
 </html>
-
